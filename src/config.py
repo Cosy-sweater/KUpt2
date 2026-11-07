@@ -7,7 +7,6 @@ def parse_arguments(tokens: list[str]) -> dict | None:
     """Функция обработки аргумента командной строки"""
 
     result = {"errors": [], "flags": [], "pos-args": []}
-    token_count_num = 2
 
     for token in tokens:
         if "=" in token:
