@@ -3,13 +3,26 @@ import gzip
 import urllib
 import urllib.request as rs
 
+from graph import Graph
+
+
 def get_json(url):
-    rq = urllib.request.Request(url, headers={"Accept": "application/json", "Accept-Encoding": "gzip"})
-    with rs.urlopen(rq) as resp:
-        data = resp.read()
-        if "gzip" in resp.headers.get("Content-Encoding", "").lower():
-            data = gzip.decompress(data)
-        return json.loads(data)
+    rq = urllib.request.Request(url.strip(), headers={"Accept": "application/json", "Accept-Encoding": "gzip"})
+    fail = True
+    retries = 5
+    for i in range(retries):
+        try:
+            with rs.urlopen(rq, timeout=5) as resp:
+                data = resp.read()
+                if "gzip" in resp.headers.get("Content-Encoding", "").lower():
+                    data = gzip.decompress(data)
+                return json.loads(data)
+        except urllib.error.URLError or TimeoutError:
+            print(f"An error occured while trying to scan {url}. Retrying {i + 1}/{retries}")
+            continue
+    if fail:
+        print(f"Unable to scan package {url}. Exiting")
+
 
 
 def get_version(package: str, filter: str | None = None):
@@ -20,15 +33,22 @@ def get_version(package: str, filter: str | None = None):
     return versions[-1]
 
 
-def get_package(url: str):
+def get_package(pth: str, skip_url_check: bool = False):
     two = 2
     api_url = "https://api.nuget.org/v3/registration5-gz-semver2/"
-    path = urllib.parse.urlparse(url).path.strip("/").split("/")
-    if len(path) < two and path[0] != "packages":
-        return None
 
-    version = path[2] if len(path) > two else get_version(path[1])
-    data = get_json(get_json(f"{api_url}{path[1].lower()}/{version.lower()}.json")["catalogEntry"])
+    if not skip_url_check:
+        path = urllib.parse.urlparse(pth).path.strip("/").split("/")
+        if len(path) < two and path[0] != "packages":
+            return None
+        version = path[2] if len(path) > two else get_version(path[1])
+        initial_data = get_json(f"{api_url}{path[1].lower()}/{version.lower()}.json")["catalogEntry"]
+    else:
+        path = pth
+        version = get_version(path)
+        initial_data = get_json(f"{api_url}{path.lower()}/{version.lower()}.json")["catalogEntry"]
+
+    data = get_json(initial_data)
     res = {
         "name": data["id"],
         "version": data["version"],
@@ -42,5 +62,36 @@ def get_package(url: str):
     return res
 
 
+def get_dependencies(url: str, filter: str = ""):
+    visited = {}
+    stack = []
+    graph = None
+
+    pkg = get_package(url)
+    graph = Graph(pkg["name"])
+    graph.add_child(Graph("123"))
+    visited[pkg["name"]] = graph
+    stack.extend((n["name"], graph) for n in pkg["dependencies"] if n["name"])
+    stack_max = len(stack)
+
+    while stack:
+        current = stack.pop(0)
+        if current[0] in visited:
+            stack_max = max(stack_max, len(stack))
+            continue
+
+        print(f"Scanning package {current[0]}: {len(stack)}/{stack_max} items left")
+
+        pkg = get_package(current[0], skip_url_check=True)
+        new_graph = Graph(pkg["name"])
+        visited[pkg["name"]] = new_graph
+        stack.extend((n["name"], new_graph) for n in pkg["dependencies"])
+
+        current[1].add_child(new_graph)
+        stack_max = max(stack_max, len(stack))
+
+    print(graph.print_tree())
+
+
 if __name__ == "__main__":
-    print(get_package("https://www.nuget.org/packages/Azure.Identity"))
+    get_dependencies("https://www.nuget.org/packages/Azure.Identity")
