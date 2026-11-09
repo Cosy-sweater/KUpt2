@@ -16,4 +16,4 @@ class Graph:
         print("\n" + "  " * depth + self.name + "(", end="")
         for i in self.dependencies:
             i.print_tree(depth+2)
-        print("  " * depth + ")")
+        print("\n" + ("  " * depth) + ")" if self.dependencies else ")", end="")

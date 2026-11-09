@@ -62,25 +62,29 @@ def get_package(pth: str, skip_url_check: bool = False):
     return res
 
 
-def get_dependencies(url: str, filter: str = ""):
+def get_dependencies(url: str, filter: str = "") -> Graph:
     visited = {}
     stack = []
     graph = None
+    duplicates = 0
+    filtered = 0
 
     pkg = get_package(url)
     graph = Graph(pkg["name"])
-    graph.add_child(Graph("123"))
     visited[pkg["name"]] = graph
     stack.extend((n["name"], graph) for n in pkg["dependencies"] if n["name"])
-    stack_max = len(stack)
 
     while stack:
         current = stack.pop(0)
         if current[0] in visited:
-            stack_max = max(stack_max, len(stack))
+            duplicates += 1
+            continue
+        if filter and filter in current[0]:
+            filtered += 1
             continue
 
-        print(f"Scanning package {current[0]}: {len(stack)}/{stack_max} items left")
+
+        print(f"Scanning package {current[0]}: found {len(visited)} items total")
 
         pkg = get_package(current[0], skip_url_check=True)
         new_graph = Graph(pkg["name"])
@@ -88,10 +92,11 @@ def get_dependencies(url: str, filter: str = ""):
         stack.extend((n["name"], new_graph) for n in pkg["dependencies"])
 
         current[1].add_child(new_graph)
-        stack_max = max(stack_max, len(stack))
 
-    print(graph.print_tree())
+    print(f"{duplicates} duplicate dependencies found")
+    print(f"{filtered} dependencies filtered out")
+    return graph
 
 
 if __name__ == "__main__":
-    get_dependencies("https://www.nuget.org/packages/Azure.Identity")
+    get_dependencies("https://www.nuget.org/packages/AWSSDK.Core")
