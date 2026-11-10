@@ -24,7 +24,6 @@ def get_json(url):
         print(f"Unable to scan package {url}. Exiting")
 
 
-
 def get_version(package: str, filter: str | None = None):
     api_url = "https://api.nuget.org/v3-flatcontainer/"
     url = f"{api_url}{package.lower()}/index.json"
@@ -70,9 +69,10 @@ def get_dependencies(url: str, filter: str = "") -> Graph:
     filtered = 0
 
     pkg = get_package(url)
-    graph = Graph(pkg["name"])
+    graph = Graph(pkg["name"], pkg["version"])
     visited[pkg["name"]] = graph
-    stack.extend((n["name"], graph) for n in pkg["dependencies"] if n["name"])
+    stack.extend((n["name"], graph, n["version"])
+                 for n in pkg["dependencies"] if n["name"])
 
     while stack:
         current = stack.pop(0)
@@ -83,13 +83,13 @@ def get_dependencies(url: str, filter: str = "") -> Graph:
             filtered += 1
             continue
 
-
-        print(f"Scanning package {current[0]}: found {len(visited)} items total")
-
         pkg = get_package(current[0], skip_url_check=True)
-        new_graph = Graph(pkg["name"])
+        print(f"Scanning package {pkg["name"]} [{pkg["version"]}]: "
+              f"found {len(visited)} items total")
+        new_graph = Graph(pkg["name"], pkg["version"])
         visited[pkg["name"]] = new_graph
-        stack.extend((n["name"], new_graph) for n in pkg["dependencies"])
+        stack.extend((n["name"], new_graph, n["version"])
+                     for n in pkg["dependencies"])
 
         current[1].add_child(new_graph)
 
