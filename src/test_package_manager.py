@@ -33,7 +33,7 @@ def build_graph(path: str, filter: str = "") -> Graph:
         pkg = data.get(current[0])
         new_graph = Graph(current[0])
         visited[current[0]] = new_graph
-        if t := data.get(current[0]):
+        if t := pkg:
             stack.extend((n, new_graph) for n in t)
         current[1].add_child(new_graph)
 
