@@ -14,9 +14,9 @@ class Graph:
         return f"{self.name}({self.dependencies})"
 
     def print_tree(self, depth=0):
-        print("\n" + "  " * depth + self.name +
-              (f" [{self.version}] " if self.version else "") + "(", end="")
+        print("\n" + "  " * depth + self.name + (
+            f" [{self.version}] " if self.version else "") + "(", end="")
         for i in self.dependencies:
-            i.print_tree(depth+2)
+            i.print_tree(depth + 2)
         print("\n" + ("  " * depth) + ")" if self.dependencies else ")",
               end="")
