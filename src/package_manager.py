@@ -3,8 +3,11 @@ import gzip
 import urllib
 import urllib.request as rs
 
+
 def get_json(url):
-    rq = urllib.request.Request(url, headers={"Accept": "application/json", "Accept-Encoding": "gzip"})
+    rq = urllib.request.Request(url, headers={
+        "Accept": "application/json", "Accept-Encoding": "gzip"
+    })
     with rs.urlopen(rq) as resp:
         data = resp.read()
         if "gzip" in resp.headers.get("Content-Encoding", "").lower():
@@ -28,7 +31,8 @@ def get_package(url: str):
         return None
 
     version = path[2] if len(path) > two else get_version(path[1])
-    data = get_json(get_json(f"{api_url}{path[1].lower()}/{version.lower()}.json")["catalogEntry"])
+    data = get_json(get_json(f"{api_url}{path[1].lower()}/"
+                             f"{version.lower()}.json")["catalogEntry"])
     res = {
         "name": data["id"],
         "version": data["version"],
@@ -36,8 +40,11 @@ def get_package(url: str):
     }
     for group in data.get("dependencyGroups", []):
         for dependency in group.get("dependencies", []):
-            res["dependencies"].append({"name": dependency["id"], "version": dependency.get("range"),
-                                        "targetFramework": group.get("targetFramework")})
+            res["dependencies"].append({
+                "name": dependency["id"],
+                "version": dependency.get("range"),
+                "targetFramework": group.get("targetFramework")
+            })
 
     return res
 
