@@ -48,7 +48,8 @@ def get_dependencies(path: str, filter: str = "") -> Graph | None:
     graph = Graph(pkg["name"], pkg["version"])
     visited[(pkg["name"].lower(), pkg["version"].lower())] = graph
     stack.extend(
-        (n["name"], graph, n["version"]) for n in pkg["dependencies"] if n["name"]
+        (n["name"], graph, n["version"])
+        for n in pkg["dependencies"] if n["name"]
     )
     while stack:
         dep_name, parent_graph, dep_ver = stack.pop(0)
