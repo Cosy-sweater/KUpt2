@@ -80,51 +80,41 @@ def get_package(pth: str, version: str | None = None,
 
 
 def get_dependencies(url: str, filter: str = "") -> Graph:
-    visited = {}
-    stack = []
+    visited, stack = {}, []
     duplicates = 0
     filtered = 0
-
     pkg = get_package(url)
     graph = Graph(pkg["name"], pkg["version"])
-
     visited[(pkg["name"].lower(), pkg["version"].lower())] = graph
     stack.extend(
         (n["name"], graph, n["version"])
         for n in pkg["dependencies"] if n["name"]
     )
-
     while stack:
         name, parent_graph, version = stack.pop(0)
 
         if filter and filter in name:
             filtered += 1
             continue
-
         resolved_ver = format_version(name, version)
         sign = (name.lower(), resolved_ver.lower())
 
         if sign in visited:
             duplicates += 1
             continue
-
         pkg = get_package(name, resolved_ver, skip_url_check=True)
         print(
             f"Scanning package {pkg['name']} [{pkg['version']}]: "
             f"found {len(visited)} items total"
         )
         new_graph = Graph(pkg["name"], pkg["version"])
-
         visited[sign] = new_graph
         visited[(pkg["name"].lower(), pkg["version"].lower())] = new_graph
-
         stack.extend(
             (n["name"], new_graph, n["version"])
             for n in pkg["dependencies"] if n["name"]
         )
-
         parent_graph.add_child(new_graph)
-
     print(f"{duplicates} duplicate dependencies found")
     print(f"{filtered} dependencies filtered out")
     return graph
