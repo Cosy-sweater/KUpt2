@@ -45,6 +45,7 @@ def _handle_arguments(args: dict) -> dict | None:
 
 
 def _test_config(args: dict) -> dict | None:
+    url_err = 400
     if args["test_mode"]:
         if not os.path.exists(args["path"]):
             print("Invalid path")
@@ -55,7 +56,7 @@ def _test_config(args: dict) -> dict | None:
         except urllib.error.URLError:
             print("Invalid URL")
             return None
-        if not resp.code < 400:
+        if not resp.code < url_err:
             print("Invalid URL")
             return None
 
