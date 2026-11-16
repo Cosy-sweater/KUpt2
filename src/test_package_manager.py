@@ -42,39 +42,23 @@ def get_package(catalog: dict, name: str, version: str) -> dict | None:
 
 def get_dependencies(path: str, filter: str = "") -> Graph | None:
     start_pkg, catalog = read_file(path)
-    if not start_pkg:
-        print("Empty package file. Exiting.")
-        return None
-
-    visited = {}
-    stack = []
-    duplicates = 0
-    filtered = 0
-    missing = 0
-
+    visited, stack, duplicates, filtered, missing = {}, [], 0, 0, 0
     root_name, root_ver = start_pkg
     pkg = get_package(catalog, root_name, root_ver)
-
     graph = Graph(pkg["name"], pkg["version"])
     visited[(pkg["name"].lower(), pkg["version"].lower())] = graph
-
     stack.extend(
-        (n["name"], graph, n["version"])
-        for n in pkg["dependencies"] if n["name"]
+        (n["name"], graph, n["version"]) for n in pkg["dependencies"] if n["name"]
     )
-
     while stack:
         dep_name, parent_graph, dep_ver = stack.pop(0)
         dep_key = (dep_name.lower(), dep_ver.lower())
-
         if dep_key in visited:
             duplicates += 1
             continue
-
         if filter and filter in dep_name:
             filtered += 1
             continue
-
         pkg = get_package(catalog, dep_name, dep_ver)
         if pkg is None:
             missing += 1
@@ -83,25 +67,25 @@ def get_dependencies(path: str, filter: str = "") -> Graph | None:
             visited[dep_key] = new_graph
             parent_graph.add_child(new_graph)
             continue
-
         print(
             f"Scanning package {pkg['name']} [{pkg['version']}]: "
             f"found {len(visited)} items total"
         )
         new_graph = Graph(pkg["name"], pkg["version"])
         visited[dep_key] = new_graph
-
         stack.extend(
             (n["name"], new_graph, n["version"])
             for n in pkg["dependencies"] if n["name"]
         )
-
         parent_graph.add_child(new_graph)
+    print_info(duplicates, filtered, missing)
+    return graph
 
+
+def print_info(duplicates, filtered, missing):
     print(f"\n{duplicates} duplicate dependencies found")
     print(f"{filtered} dependencies filtered out")
     print(f"{missing} nonexistent dependencies encountered")
-    return graph
 
 
 if __name__ == "__main__":
